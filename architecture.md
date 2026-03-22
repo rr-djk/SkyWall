@@ -33,33 +33,28 @@ SkyWall/
 │   ├── engine/                 # Moteur de jeu
 │   │   ├── GameEngine.cpp/h    # Boucle principale, orchestration
 │   │   ├── Board.cpp/h         # Terrain, murs, limites, collisions
-│   │   ├── Projectile.cpp/h    # Gestion des projectiles
-│   │   ├── Tower.cpp/h         # Tours (enemy + player)
-│   │   ├── Renderer.cpp/h      # ncurses - affichage terminal
-│   │   └── LevelManager.cpp/h  # Gestion des niveaux
+│   │   ├── Renderer.cpp/h      # ncurses — affichage terminal
+│   │   ├── main.cpp            # Entry point
+│   │   └── LevelManager.cpp/h  # Gestion des niveaux (Phase 3)
 │   │
-│   ├── ipc/                    # Communication inter-processus
+│   ├── ipc/                    # Communication inter-processus (Phase 2)
 │   │   ├── PipeComm.cpp/h      # Pipes Unix, lecture non-bloquante
 │   │   └── Serializer.cpp/h    # Sérialisation GameState ↔ bytes
 │   │
-│   ├── player/                 # Interface joueur
+│   ├── player/                 # Interface joueur (Phase 2)
 │   │   ├── PlayerRunner.cpp/h  # Entry point du process joueur
 │   │   └── player.cpp          # ← L'utilisateur n'édite que ce fichier
 │   │
 │   └── shared/                 # Types partagés engine + player
 │       ├── Types.h             # Projectile, GameState, Action
-│       ├── Constants.h         # Dimensions terrain, vitesses max
-│       └── Metrics.cpp/h       # Latence, score, précision
+│       └── Constants.h         # Dimensions terrain, vitesses, tick rate
 │
 ├── include/skywall/            # Headers publics exposés au joueur
 │   └── skywall.h               # API publique : decide(), GameState, Action
 │
-├── levels/                     # Définitions des niveaux (config)
-│   ├── level_1.json
-│   ├── level_2.json
-│   └── ...
-│
-├── tests/
+├── levels/                     # Définitions des niveaux (Phase 3)
+├── tests/                      # Tests unitaires (Google Test)
+├── optimisation_options.md     # Pistes d'optimisation identifiées
 └── CMakeLists.txt
 ```
 
@@ -74,14 +69,13 @@ SkyWall/
 | Fichier | Responsabilité |
 |---------|----------------|
 | `Types.h` | `Projectile`, `GameState`, `Action` |
-| `Constants.h` | Dimensions terrain, vitesses max |
-| `Metrics.cpp/h` | Latence, score, précision |
+| `Constants.h` | Dimensions terrain, vitesses, tick rate |
 
 ```cpp
 struct Projectile {
     int   id;
-    float x, y;      // position
-    float vx, vy;    // vélocité
+    float x, y;         // position courante
+    float vel_x, vel_y; // vélocité (unités/seconde)
 };
 
 struct GameState {
@@ -91,8 +85,8 @@ struct GameState {
 };
 
 struct Action {
+    float target_x, target_y; // coordonnée cible du tir
     bool  fire;
-    float target_x, target_y;
 };
 ```
 
@@ -104,42 +98,57 @@ struct Action {
 |---------|----------------|
 | `GameEngine.cpp/h` | Boucle de jeu (tick), orchestration |
 | `Board.cpp/h` | Terrain, murs, limites, détection collisions |
-| `Projectile.cpp/h` | Création, mouvement, cycle de vie |
-| `Tower.cpp/h` | Position des tours, logique de tir |
-| `Renderer.cpp/h` | Affichage ncurses, panneau métriques |
-| `LevelManager.cpp/h` | Chargement et progression des niveaux |
+| `Renderer.cpp/h` | Affichage ncurses, double buffering |
+| `main.cpp` | Init ncurses, instancie GameEngine, shutdown |
 
-**Game loop (tick) :**
+---
+
+## Cycle du jeu
+
+### Démarrage
+
 ```
-1. update positions (x += vx * dt)
-2. check wall collisions → neutralize  (Board)
-3. check interceptions → score         (Board)
-4. draw screen (ncurses)               (Renderer)
-5. write GameState → pipe              (PipeComm)
-6. (non-blocking) read Action ← pipe  (PipeComm)
-7. if action.fire → spawn interceptor  (Tower)
+main()
+  ├── Renderer::init()        — initialise ncurses
+  ├── GameEngine engine       — initialise GameState avec positions des tours
+  ├── engine.run()            — démarre la boucle, bloquant jusqu'à la fin
+  └── Renderer::shutdown()    — restaure le terminal
 ```
 
-### ipc/
+### Un tick (~16ms à 60fps)
 
-**Communication inter-processus.**
-
-| Fichier | Responsabilité |
-|---------|----------------|
-| `PipeComm.cpp/h` | Écriture/lecture pipes, non-bloquant |
-| `Serializer.cpp/h` | Conversion GameState ↔ bytes |
-
-### player/
-
-**Interface exposée au joueur.**
-
-```cpp
-namespace skywall {
-    // Called each tick with current game state
-    // Must return in < 1ms for level 5+
-    Action decide(const GameState& state);
-}
 ```
+GameEngine::run() — boucle while(running_)
+  ├── calcule elapsed_seconds depuis le dernier tick
+  ├── updateProjectilePositions(elapsed_seconds)
+  │     └── pour chaque projectile : x += vel_x * elapsed_seconds
+  │                                  y += vel_y * elapsed_seconds
+  ├── checkCollisions()
+  │     └── retire les projectiles hors limites (Board::isOutOfBounds)
+  │         ou ayant atteint la tour joueur    (Board::hitsPlayerTower)
+  ├── fireEnemyProjectile() si plus aucun projectile actif
+  ├── Renderer::draw(state_)
+  │     ├── clear()
+  │     ├── dessine les murs (+, -, |)
+  │     ├── dessine [E] et [P] aux positions des tours
+  │     ├── dessine o à la position de chaque projectile
+  │     └── refresh()
+  └── sleep(TICK_RATE_MS)     — régule à ~60fps
+```
+
+### Communication IPC (Phase 2)
+
+```
+tick Engine → sérialise GameState → écrit dans pipe_in du player
+           ← lit Action depuis pipe_out (non-bloquant)
+           → si action.fire : tire un intercepteur
+
+tick Player → lit GameState depuis pipe_in
+           → decide() calcule la réponse
+           → écrit Action dans pipe_out
+```
+
+Le moteur n'attend jamais la réponse du joueur. Si elle n'arrive pas dans le tick courant, la fenêtre de tir est perdue.
 
 ---
 
@@ -157,9 +166,9 @@ Format binaire compact pour minimiser la latence :
 
 ```
 [4 bytes: projectile_count]
-[16 bytes: Projectile * N]
+[20 bytes: Projectile * N]   ← id(4) + x(4) + y(4) + vel_x(4) + vel_y(4)
 [8 bytes: player_tower_x, player_tower_y]
-[8 bytes: enemy_tower_x, enemy_tower_y]
+[8 bytes: enemy_tower_x,  enemy_tower_y]
 ```
 
 ---
@@ -168,7 +177,7 @@ Format binaire compact pour minimiser la latence :
 
 | Niveau | Description |
 |--------|-------------|
-| 1 | Trajectoire droite, vy = 0 |
+| 1 | Trajectoire droite, vel_y = 0 |
 | 2 | Vitesse variable, recalcul nécessaire |
 | 3 | Multiples projectiles, priorisation |
 | 4 | Projectiles à trajectoire variable |
