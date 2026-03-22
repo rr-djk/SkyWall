@@ -69,8 +69,8 @@ After each round, the engine reports:
 ## Getting started
 
 ```bash
-git clone https://github.com/yourname/skywall
-cd skywall
+git clone https://github.com/rr-djk/SkyWall
+cd SkyWall
 make
 ./skywall
 ```
