@@ -11,25 +11,89 @@ No UI. No mouse. Just code.
 
 ## How it works
 
-The engine handles everything: physics, projectiles, timing, rendering.
-Your job is to implement a single function:
+Two static towers face each other across a bounded 2D field. The enemy tower
+launches projectiles toward your fortress. Your job: detect the threats,
+calculate the intercept point, and fire before it's too late.
+
+The engine handles physics, rendering, and timing. Your job is to implement
+a single function:
 
 ```cpp
 Action decide(const GameState& state);
 ```
 
-Called every tick, this function is your entire defense strategy.
-Write it well — or watch your fortress fall.
+Your process receives the game state through a Unix pipe every tick and writes
+back a firing action. The engine never waits for you — a slow algorithm misses
+its firing window.
+
+---
+
+## The field
+
+```
+(0,max) +---------------------------------+ (max,max)
+        |                                 |
+        |  [ENEMY]   💣 -->    [PLAYER]  |
+        |  (x=0)               (x=max)   |
+        |                                 |
+(0,0)   +---------------------------------+ (max,0)
+```
+
+Any projectile — enemy or interceptor — that hits a wall is neutralized.
+Only projectiles heading toward your tower need to be intercepted.
+
+---
+
+## Architecture
+
+The engine and your algorithm run as **two separate processes** communicating
+via Unix pipes:
+
+```
+Engine  ──── GameState ────►  Your process
+Engine  ◄─── Action ─────────  Your process
+```
+
+The engine updates positions, draws the screen, and writes the game state each
+tick — without blocking on your response. Your process reads the state,
+computes a firing solution, and writes back an action.
+
+---
+
+## The data
+
+```cpp
+struct Projectile {
+    int   id;
+    float x, y;   // current position
+    float vx, vy; // velocity
+};
+
+struct GameState {
+    std::vector<Projectile> projectiles;
+    float player_tower_x, player_tower_y;
+    float enemy_tower_x,  enemy_tower_y;
+};
+
+struct Action {
+    bool  fire;
+    float target_x, target_y;
+};
+```
+
+Use `vx` and `vy` to determine which projectiles are heading toward you and
+predict where they will be.
 
 ---
 
 ## The challenge
 
-Incoming projectiles won't wait for you. Your algorithm must:
+Your algorithm must:
 
-- **Predict** where threats are heading
-- **Intercept** them before they reach the fortress
-- **Run fast** — decisions must be made in under 5ms
+- **Detect** which projectiles are a threat
+- **Predict** their future position: `x' = x + vx * t`
+- **Intercept** them before they reach your tower
+- **Run fast** — you have one tick to respond
 
 Every millisecond counts. Every allocation matters.
 
@@ -47,10 +111,10 @@ Every millisecond counts. Every allocation matters.
 
 | # | Name | Challenge |
 |---|------|-----------|
-| 1 | Straight Line | Basic interception |
-| 2 | Variable Speed | Recalculate on acceleration |
-| 3 | Multi-Threat | Prioritize simultaneous projectiles |
-| 4 | Smart Bombs | Dynamic replanning |
+| 1 | Straight Line | Basic interception, projectiles travel in a straight line |
+| 2 | Variable Speed | Projectiles accelerate — recalculate mid-flight |
+| 3 | Multi-Threat | Multiple simultaneous projectiles — prioritize |
+| 4 | Smart Bombs | Projectiles change trajectory — replan dynamically |
 | 5 | Zero Tolerance | Strict latency limits — no mercy |
 
 ---
@@ -83,6 +147,7 @@ Open `src/player.cpp`, implement `decide()`, and launch.
 
 - C++17
 - CMake 3.15+
+- ncurses
 - A terminal
 - Good instincts
 
