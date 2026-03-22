@@ -168,12 +168,14 @@ tick:
 
 ## Étapes de développement
 
-### Phase 1 — MVP
+### ✅ Phase 1 — MVP (terminée)
 - Terrain délimité, deux tours statiques
 - 1 projectile ennemi en ligne droite
 - Rendu ncurses basique
+- Tests unitaires Board (Google Test)
+- CMakeLists.txt avec cible `make unit_tests`
 
-### Phase 2 — IPC & Communication
+### 🔜 Phase 2 — IPC & Communication
 - Pipe engine ↔ player process
 - Sérialisation du GameState
 - Lecture non-bloquante
@@ -199,6 +201,10 @@ tick:
 - Leaderboard
 - Stress test (100+ projectiles simultanés)
 - Visualisation des trajectoires prédites
+- **Agrandissement du board** — le board actuel (80x24) n'occupe qu'un quart
+  d'un écran 23 pouces. ncurses permet de récupérer dynamiquement la taille
+  du terminal (`getmaxyx()`) pour adapter le board à la résolution disponible,
+  ce qui offrirait un terrain de jeu plus large et des trajectoires plus complexes.
 
 ---
 
