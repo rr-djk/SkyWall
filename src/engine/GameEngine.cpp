@@ -1,6 +1,7 @@
 #include "GameEngine.h"
-#include "../shared/Constants.h"
 #include "Board.h"
+#include "Renderer.h"
+#include "../shared/Constants.h"
 
 #include <algorithm>
 #include <chrono>
@@ -62,7 +63,7 @@ void GameEngine::run() {
     if (state_.projectiles.empty())
       fireEnemyProjectile();
 
-    // render() — placeholder (Renderer à venir)
+    Renderer::draw(state_);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(TICK_RATE_MS));
   }
