@@ -1,0 +1,20 @@
+# Documentation personnelle
+CLAUDE.md
+roadmap.md
+
+# Build directories
+build/
+cmake-build-*/
+
+# Compiled output
+*.o
+*.d
+*.a
+*.out
+*.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
