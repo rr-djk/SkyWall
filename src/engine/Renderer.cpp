@@ -41,9 +41,13 @@ void draw(const GameState& state) {
     mvprintw((int)state.enemy_tower_y,  (int)state.enemy_tower_x,  "[E]");
     mvprintw((int)state.player_tower_y, (int)state.player_tower_x, "[P]");
 
-    // Projectiles
+    // Projectiles ennemis
     for (const auto& p : state.projectiles)
         mvaddch((int)p.y, (int)p.x, 'o');
+
+    // Intercepteurs du joueur
+    for (const auto& p : state.interceptors)
+        mvaddch((int)p.y, (int)p.x, '*');
 
     refresh();
 }
