@@ -28,7 +28,8 @@ TEST(SerializerTest, GameState_RoundTrip_NoProjectiles) {
 
     const GameState result = deserialize_game_state(serialize_game_state(original));
 
-    EXPECT_EQ(result.projectiles.size(), 0u);
+    EXPECT_EQ(result.projectiles.size(),  0u);
+    EXPECT_EQ(result.interceptors.size(), 0u);
     EXPECT_FLOAT_EQ(result.player_tower_x, original.player_tower_x);
     EXPECT_FLOAT_EQ(result.player_tower_y, original.player_tower_y);
     EXPECT_FLOAT_EQ(result.enemy_tower_x,  original.enemy_tower_x);
@@ -81,15 +82,35 @@ TEST(SerializerTest, GameState_RoundTrip_MultipleProjectiles) {
 
 TEST(SerializerTest, GameState_BufferSize_NoProjectiles) {
     GameState state;
-    // 4 (count) + 4+4+4+4 (towers) = 20 bytes
-    EXPECT_EQ(serialize_game_state(state).size(), 20u);
+    // 4 (projectile_count) + 4 (interceptor_count) + 4*4 (towers) = 24 bytes
+    EXPECT_EQ(serialize_game_state(state).size(), 24u);
 }
 
 TEST(SerializerTest, GameState_BufferSize_OneProjectile) {
     GameState state;
     state.projectiles.push_back(make_projectile(0, 0, 0, 0, 0));
-    // 4 (count) + 20 (projectile) + 16 (towers) = 40 bytes
-    EXPECT_EQ(serialize_game_state(state).size(), 40u);
+    // 4 (projectile_count) + 20 (projectile) + 4 (interceptor_count) + 0 + 16 (towers) = 44 bytes
+    EXPECT_EQ(serialize_game_state(state).size(), 44u);
+}
+
+TEST(SerializerTest, GameState_RoundTrip_WithInterceptor) {
+    GameState original;
+    original.player_tower_x = 76.0f;
+    original.player_tower_y = 12.0f;
+    original.enemy_tower_x  = 2.0f;
+    original.enemy_tower_y  = 12.0f;
+    original.projectiles.push_back(make_projectile(0, 10.0f, 12.0f, 20.0f, 0.0f));
+    original.interceptors.push_back(make_projectile(1, 76.0f, 12.0f, -25.0f, 3.0f));
+
+    const GameState result = deserialize_game_state(serialize_game_state(original));
+
+    ASSERT_EQ(result.projectiles.size(),  1u);
+    ASSERT_EQ(result.interceptors.size(), 1u);
+    EXPECT_EQ(result.interceptors[0].id,    1);
+    EXPECT_FLOAT_EQ(result.interceptors[0].x,     76.0f);
+    EXPECT_FLOAT_EQ(result.interceptors[0].y,     12.0f);
+    EXPECT_FLOAT_EQ(result.interceptors[0].vel_x, -25.0f);
+    EXPECT_FLOAT_EQ(result.interceptors[0].vel_y,   3.0f);
 }
 
 // ---------------------------------------------------------------------------

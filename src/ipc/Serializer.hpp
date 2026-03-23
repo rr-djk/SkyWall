@@ -8,7 +8,9 @@
 ///
 /// Format:
 ///   [4 bytes] projectile_count (uint32_t)
-///   [20 bytes × N] per projectile: id(4) x(4) y(4) vel_x(4) vel_y(4)
+///   [20 bytes × N] per projectile:  id(4) x(4) y(4) vel_x(4) vel_y(4)
+///   [4 bytes] interceptor_count (uint32_t)
+///   [20 bytes × M] per interceptor: id(4) x(4) y(4) vel_x(4) vel_y(4)
 ///   [4 bytes] player_tower_x (float)
 ///   [4 bytes] player_tower_y (float)
 ///   [4 bytes] enemy_tower_x  (float)
