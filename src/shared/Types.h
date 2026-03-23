@@ -9,7 +9,8 @@ struct Projectile {
 };
 
 struct GameState {
-    std::vector<Projectile> projectiles;
+    std::vector<Projectile> projectiles;   // projectiles ennemis
+    std::vector<Projectile> interceptors;  // intercepteurs tirés par le joueur
     float player_tower_x, player_tower_y;
     float enemy_tower_x,  enemy_tower_y;
 };
