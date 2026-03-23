@@ -65,12 +65,13 @@ computes a firing solution, and writes back an action.
 ```cpp
 struct Projectile {
     int   id;
-    float x, y;   // current position
-    float vx, vy; // velocity
+    float x, y;       // current position
+    float vel_x, vel_y; // velocity
 };
 
 struct GameState {
-    std::vector<Projectile> projectiles;
+    std::vector<Projectile> projectiles;   // enemy projectiles
+    std::vector<Projectile> interceptors;  // your interceptors in flight
     float player_tower_x, player_tower_y;
     float enemy_tower_x,  enemy_tower_y;
 };
@@ -81,8 +82,8 @@ struct Action {
 };
 ```
 
-Use `vx` and `vy` to determine which projectiles are heading toward you and
-predict where they will be.
+Use `vel_x` and `vel_y` to determine which projectiles are heading toward you
+and predict where they will be.
 
 ---
 
@@ -135,11 +136,30 @@ After each round, the engine reports:
 ```bash
 git clone https://github.com/rr-djk/SkyWall
 cd SkyWall
+mkdir build && cd build
+cmake ..
+make
+```
+
+This produces two binaries in `build/`:
+
+- `skywall` — the game engine
+- `skywall_player` — your algorithm process
+
+The engine launches `skywall_player` automatically when you start a game.
+Both binaries must be in the same directory.
+
+**Implement your algorithm** in `src/player/player.cpp`, then rebuild and run:
+
+```bash
+# from build/
 make
 ./skywall
 ```
 
-Open `src/player.cpp`, implement `decide()`, and launch.
+The engine sends you a `GameState` every tick via a Unix pipe and reads your
+`Action` response without blocking. If your algorithm doesn't respond in time,
+the tick passes without a shot.
 
 ---
 

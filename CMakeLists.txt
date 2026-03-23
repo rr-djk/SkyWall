@@ -14,14 +14,22 @@ find_package(Curses REQUIRED)
 # Librairie interne — partagée entre l'exécutable et les tests
 # ---------------------------------------------------------------------------
 
+add_library(ipc_lib
+    src/ipc/Serializer.cpp
+    src/ipc/PipeComm.cpp
+)
+
+target_include_directories(ipc_lib PUBLIC src/)
+
 add_library(engine_lib
     src/engine/GameEngine.cpp
     src/engine/Board.cpp
     src/engine/Renderer.cpp
+    src/engine/PlayerProcess.cpp
 )
 
 target_include_directories(engine_lib PUBLIC src/)
-target_link_libraries(engine_lib ${CURSES_LIBRARIES})
+target_link_libraries(engine_lib ipc_lib ${CURSES_LIBRARIES})
 
 # ---------------------------------------------------------------------------
 # Exécutable principal
@@ -29,6 +37,17 @@ target_link_libraries(engine_lib ${CURSES_LIBRARIES})
 
 add_executable(skywall src/engine/main.cpp)
 target_link_libraries(skywall engine_lib)
+
+# ---------------------------------------------------------------------------
+# Exécutable joueur
+# ---------------------------------------------------------------------------
+
+add_executable(skywall_player
+    src/player/PlayerRunner.cpp
+    src/player/player.cpp
+)
+target_include_directories(skywall_player PRIVATE src/)
+target_link_libraries(skywall_player ipc_lib)
 
 # ---------------------------------------------------------------------------
 # Tests — Google Test via FetchContent (téléchargé automatiquement)
@@ -47,10 +66,26 @@ enable_testing()
 
 add_executable(test_Board tests/test_Board.cpp)
 target_link_libraries(test_Board engine_lib gtest_main)
-
 add_test(NAME test_Board COMMAND test_Board)
+
+add_executable(test_Serializer tests/test_Serializer.cpp)
+target_link_libraries(test_Serializer ipc_lib gtest_main)
+add_test(NAME test_Serializer COMMAND test_Serializer)
+
+add_executable(test_PipeComm tests/test_PipeComm.cpp)
+target_link_libraries(test_PipeComm ipc_lib gtest_main)
+add_test(NAME test_PipeComm COMMAND test_PipeComm)
+
+add_executable(test_PlayerProcess tests/test_PlayerProcess.cpp)
+target_link_libraries(test_PlayerProcess engine_lib ipc_lib gtest_main)
+add_test(NAME test_PlayerProcess COMMAND test_PlayerProcess)
+
+add_executable(test_player tests/test_player.cpp src/player/player.cpp)
+target_include_directories(test_player PRIVATE src/)
+target_link_libraries(test_player ipc_lib gtest_main)
+add_test(NAME test_player COMMAND test_player)
 
 add_custom_target(unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_Board
+    DEPENDS test_Board test_Serializer test_PipeComm test_PlayerProcess test_player
 )

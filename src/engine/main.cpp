@@ -4,7 +4,7 @@
 int main() {
     Renderer::init();
 
-    GameEngine engine;
+    GameEngine engine("./skywall_player");
     engine.run();
 
     Renderer::shutdown();

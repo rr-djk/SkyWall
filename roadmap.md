@@ -175,14 +175,19 @@ tick:
 - Tests unitaires Board (Google Test)
 - CMakeLists.txt avec cible `make unit_tests`
 
-### 🔜 Phase 2 — IPC & Communication
-- Pipe engine ↔ player process
-- Sérialisation du GameState
-- Lecture non-bloquante
+### ✅ Phase 2 — IPC & Communication (terminée)
+- ✅ Sérialisation binaire GameState / Action (`src/ipc/Serializer`)
+- ✅ Pipes anonymes Unix avec framing et lecture non-bloquante (`src/ipc/PipeComm`)
+- ✅ Cycle de vie du process joueur via fork + exec (`src/engine/PlayerProcess`)
+- ✅ Boucle joueur et stub `decide()` (`src/player/`)
+- ✅ CI GitHub Actions sur push .cpp/.hpp/.h
+- ✅ Intégration dans GameEngine (send/receive par tick, spawn intercepteur)
 
-### Phase 3 — Interception
-- Algorithme de détection et calcul de trajectoire
-- Logique de tir du joueur
+### 🔄 Phase 3 — Interception (en cours)
+- ✅ Détection de collision entre intercepteurs et projectiles ennemis (COLLISION_RADIUS)
+- ✅ Stub decide() de base pour valider le rendu (vise la position courante)
+- 🔜 Calcul du point d'interception (prédiction de trajectoire)
+- 🔜 Implémentation de decide() avec prédiction dans player.cpp
 
 ### Phase 4 — Système de niveaux
 - Progression et validation

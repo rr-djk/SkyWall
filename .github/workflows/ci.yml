@@ -1,0 +1,29 @@
+name: Unit Tests
+
+on:
+  push:
+    paths:
+      - '**.cpp'
+      - '**.hpp'
+      - '**.h'
+      - 'CMakeLists.txt'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake libncurses-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build tests
+        run: cmake --build build --target unit_tests
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
