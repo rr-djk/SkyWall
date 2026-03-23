@@ -22,6 +22,11 @@ PipeComm::PipeComm() {
     }
 }
 
+PipeComm::PipeComm(int read_fd, int write_fd)
+    : engine_to_player_{read_fd, -1}
+    , player_to_engine_{-1, write_fd}
+{}
+
 PipeComm::~PipeComm() {
     for (int fd : {engine_to_player_[0], engine_to_player_[1],
                    player_to_engine_[0], player_to_engine_[1]}) {

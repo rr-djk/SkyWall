@@ -24,6 +24,12 @@ public:
     /// @brief Creates both pipes. Throws std::runtime_error on failure.
     PipeComm();
 
+    /// @brief Wraps two existing file descriptors for player-side use.
+    ///        Used by the player process which receives its fds as argv arguments.
+    /// @param read_fd  Fd to read GameState from (engine_to_player read end).
+    /// @param write_fd Fd to write Action to (player_to_engine write end).
+    PipeComm(int read_fd, int write_fd);
+
     ~PipeComm();
 
     // Non-copyable
