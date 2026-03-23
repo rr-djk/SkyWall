@@ -14,5 +14,9 @@ constexpr float PROJECTILE_SPEED   = 20.0f;
 // Vitesse des intercepteurs tirés par la tour du joueur.
 constexpr float INTERCEPTOR_SPEED  = 30.0f;
 
+// Distance maximale (en unités de terrain) à laquelle un intercepteur
+// neutralise un projectile ennemi.
+constexpr float COLLISION_RADIUS   = 1.5f;
+
 // Durée d'un tick en millisecondes (~60fps).
 constexpr int TICK_RATE_MS = 16;

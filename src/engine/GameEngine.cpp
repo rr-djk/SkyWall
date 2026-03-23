@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <thread>
+#include <unordered_set>
 
 void updateProjectile(Projectile &p, float elapsed_seconds) {
   p.x += p.vel_x * elapsed_seconds;
@@ -63,18 +64,39 @@ void GameEngine::updateProjectilePositions(float elapsed_seconds) {
 }
 
 void GameEngine::checkCollisions() {
+  // Identifie les paires (intercepteur, projectile ennemi) qui se croisent.
+  std::unordered_set<int> neutralized_projectiles;
+  std::unordered_set<int> neutralized_interceptors;
+
+  for (const auto& interceptor : state_.interceptors) {
+    for (const auto& proj : state_.projectiles) {
+      const float dx = interceptor.x - proj.x;
+      const float dy = interceptor.y - proj.y;
+      const float distance = std::sqrt(dx * dx + dy * dy);
+
+      if (distance < COLLISION_RADIUS) {
+        neutralized_interceptors.insert(interceptor.id);
+        neutralized_projectiles.insert(proj.id);
+      }
+    }
+  }
+
+  // Supprime les projectiles ennemis neutralisés ou hors limites.
   auto& projs = state_.projectiles;
   projs.erase(std::remove_if(projs.begin(), projs.end(),
-                             [](const Projectile& p) {
+                             [&](const Projectile& p) {
                                return Board::isOutOfBounds(p) ||
-                                      Board::hitsPlayerTower(p);
+                                      Board::hitsPlayerTower(p) ||
+                                      neutralized_projectiles.count(p.id);
                              }),
               projs.end());
 
+  // Supprime les intercepteurs neutralisés ou hors limites.
   auto& intercepts = state_.interceptors;
   intercepts.erase(std::remove_if(intercepts.begin(), intercepts.end(),
-                                  [](const Projectile& p) {
-                                    return Board::isOutOfBounds(p);
+                                  [&](const Projectile& p) {
+                                    return Board::isOutOfBounds(p) ||
+                                           neutralized_interceptors.count(p.id);
                                   }),
                    intercepts.end());
 }

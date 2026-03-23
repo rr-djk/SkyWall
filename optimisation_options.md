@@ -45,3 +45,21 @@ Remplacer les exceptions par un type de retour d'erreur explicite, par exemple `
 
 **Pourquoi ne pas le faire maintenant :**
 Le jeu est mono-utilisateur local — un crash pipe signifie que le player process est mort, ce qui est une erreur fatale de toute façon. À revisiter si on ajoute un mode réseau ou un player process redémarrable.
+
+---
+
+## Renderer — Rafraîchissement partiel du board
+
+**Fichier :** `src/engine/Renderer.cpp`
+
+**Symptôme observé :**
+Le bord inférieur du board se redessine de manière visible à chaque tick, créant un effet de scintillement perceptible sur un écran 23 pouces.
+
+**Cause probable :**
+`Renderer::draw()` appelle `clear()` suivi de `refresh()` à chaque tick, ce qui efface et redessine l'intégralité de l'écran. ncurses ne fait pas de diff entre l'ancien et le nouvel état avant d'envoyer les caractères au terminal.
+
+**Amélioration possible :**
+Remplacer `clear()` par `erase()` pour marquer l'écran comme à redessiner sans flush immédiat, puis laisser ncurses calculer le diff minimal via son double-buffer interne avant le `refresh()`. En complément, `wclear()` + `wnoutrefresh()` sur une fenêtre dédiée suivi d'un seul `doupdate()` permet de grouper tous les redraws en un seul flush terminal, ce qui élimine le scintillement ligne par ligne.
+
+**Pourquoi ne pas le faire maintenant :**
+Le rendu est fonctionnel et le scintillement n'affecte pas la logique de jeu. À corriger avant de passer à la Phase 4 pour garantir une expérience visuelle propre sur des boards plus grands.
